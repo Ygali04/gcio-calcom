@@ -328,9 +328,9 @@
   --cal-text-attention: hsla(16, 62%, 28%, 1);
   --cal-text-error: hsla(0, 63%, 31%, 1);
 
-  /* Brand */
-  --cal-brand: hsla(221, 39%, 11%, 1);
-  --cal-brand-emphasis: hsla(0, 0%, 6%, 1);
+  /* Brand — GCIO navy #1f2f62 */
+  --cal-brand: hsla(224, 52%, 25%, 1);
+  --cal-brand-emphasis: hsla(224, 52%, 18%, 1);
   --cal-brand-text: hsla(0, 0%, 100%, 1);
 
   /* Box Shadows */
@@ -452,10 +452,10 @@
   --cal-text-attention: hsla(37, 86%, 92%, 1);
   --cal-text-error: hsla(3, 66%, 93%, 1);
 
-  /* Brand */
-  --cal-brand: hsla(0, 0%, 100%, 1);
-  --cal-brand-emphasis: hsla(218, 11%, 65%, 1);
-  --cal-brand-text: hsla(0, 0%, 0%, 1);
+  /* Brand — GCIO navy #1f2f62 */
+  --cal-brand: hsla(224, 52%, 25%, 1);
+  --cal-brand-emphasis: hsla(224, 52%, 18%, 1);
+  --cal-brand-text: hsla(0, 0%, 100%, 1);
 
   /* Fill Colors */
   --fill-emphasis: var(--cal-text-emphasis);
