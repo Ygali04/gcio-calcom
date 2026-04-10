@@ -39,9 +39,18 @@ import prisma from "@calcom/prisma";
 
 const log = logger.getSubLogger({ prefix: ["gcio-sso"] });
 
-const SHARED_SECRET = process.env.GCIO_SSO_SHARED_SECRET;
-const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
-const WEBAPP_URL = process.env.NEXT_PUBLIC_WEBAPP_URL ?? "https://gcio-calcom-production.up.railway.app";
+// Env vars are read lazily on every request (function scope, not module scope).
+// Reason: Next.js / Turbopack can inline or cache module-scope process.env
+// references in ways that miss values injected at container start. Reading
+// inside the handler guarantees the live runtime value is used.
+function getEnv() {
+  return {
+    sharedSecret: process.env.GCIO_SSO_SHARED_SECRET,
+    nextAuthSecret: process.env.NEXTAUTH_SECRET,
+    webappUrl:
+      process.env.NEXT_PUBLIC_WEBAPP_URL ?? "https://gcio-calcom-production.up.railway.app",
+  };
+}
 
 interface GcioSsoClaims {
   iss: string;
@@ -55,30 +64,37 @@ interface GcioSsoClaims {
   nbf: number;
 }
 
-function errorRedirect(reason: string) {
+function errorRedirect(webappUrl: string, reason: string) {
   log.warn("[gcio-sso] rejecting SSO request", { reason });
   // Redirect to the standard Cal.com auth error page so the user sees
   // a recognizable failure mode rather than a bare JSON response.
   return NextResponse.redirect(
-    `${WEBAPP_URL}/auth/error?error=gcio-sso-${encodeURIComponent(reason)}`,
+    `${webappUrl}/auth/error?error=gcio-sso-${encodeURIComponent(reason)}`,
     { status: 302 }
   );
 }
 
 export async function GET(req: NextRequest) {
-  if (!SHARED_SECRET) {
+  const { sharedSecret, nextAuthSecret, webappUrl } = getEnv();
+  // Debug: list all GCIO_* env keys the container actually sees. Remove after confirming fix.
+  log.info("[gcio-sso] env probe", {
+    gcioKeys: Object.keys(process.env).filter((k) => k.startsWith("GCIO_")),
+    hasNextAuthSecret: Boolean(nextAuthSecret),
+    sharedSecretPrefix: sharedSecret ? sharedSecret.slice(0, 4) : null,
+  });
+  if (!sharedSecret) {
     log.error("[gcio-sso] GCIO_SSO_SHARED_SECRET is not configured");
-    return errorRedirect("not-configured");
+    return errorRedirect(webappUrl, "not-configured");
   }
-  if (!NEXTAUTH_SECRET) {
+  if (!nextAuthSecret) {
     log.error("[gcio-sso] NEXTAUTH_SECRET is not configured");
-    return errorRedirect("nextauth-secret-missing");
+    return errorRedirect(webappUrl, "nextauth-secret-missing");
   }
 
   const url = new URL(req.url);
   const token = url.searchParams.get("token");
   if (!token) {
-    return errorRedirect("missing-token");
+    return errorRedirect(webappUrl, "missing-token");
   }
 
   // 1. Verify the JWT signature, expiration, audience, and issuer in one shot.
@@ -86,7 +102,7 @@ export async function GET(req: NextRequest) {
   // don't need to add a new dependency to apps/web/package.json.
   let claims: GcioSsoClaims;
   try {
-    const secretKey = new TextEncoder().encode(SHARED_SECRET);
+    const secretKey = new TextEncoder().encode(sharedSecret);
     const { payload } = await jwtVerify(token, secretKey, {
       algorithms: ["HS256"],
       issuer: "gcio-backend",
@@ -94,13 +110,13 @@ export async function GET(req: NextRequest) {
     });
     claims = payload as unknown as GcioSsoClaims;
   } catch (err) {
-    if (err instanceof joseErrors.JWTExpired) return errorRedirect("token-expired");
+    if (err instanceof joseErrors.JWTExpired) return errorRedirect(webappUrl, "token-expired");
     if (err instanceof joseErrors.JWSSignatureVerificationFailed)
-      return errorRedirect("bad-signature");
+      return errorRedirect(webappUrl, "bad-signature");
     if (err instanceof joseErrors.JWTClaimValidationFailed)
-      return errorRedirect("bad-claims");
-    if (err instanceof joseErrors.JWTInvalid) return errorRedirect("invalid-token");
-    return errorRedirect("verification-failed");
+      return errorRedirect(webappUrl, "bad-claims");
+    if (err instanceof joseErrors.JWTInvalid) return errorRedirect(webappUrl, "invalid-token");
+    return errorRedirect(webappUrl, "verification-failed");
   }
 
   // 2. Look up the Cal.com user. We trust the email field from the verified
@@ -123,7 +139,7 @@ export async function GET(req: NextRequest) {
     log.warn("[gcio-sso] no Cal.com user found for verified email", {
       email: claims.email,
     });
-    return errorRedirect("user-not-found");
+    return errorRedirect(webappUrl, "user-not-found");
   }
 
   // 3. Build a NextAuth session token. Field shape mirrors what
@@ -156,7 +172,7 @@ export async function GET(req: NextRequest) {
   const maxAge = 30 * 24 * 60 * 60;
   const encoded = await encode({
     token: sessionToken,
-    secret: NEXTAUTH_SECRET,
+    secret: nextAuthSecret,
     maxAge,
   });
 
@@ -164,10 +180,10 @@ export async function GET(req: NextRequest) {
   // get the exact same cookie name + flags Cal.com uses for its own
   // session cookies. Mismatch on either would mean Cal.com doesn't
   // see the session.
-  const useSecure = WEBAPP_URL.startsWith("https://");
+  const useSecure = webappUrl.startsWith("https://");
   const cookies = defaultCookies(useSecure);
 
-  const response = NextResponse.redirect(`${WEBAPP_URL}/event-types`, { status: 302 });
+  const response = NextResponse.redirect(`${webappUrl}/event-types`, { status: 302 });
   response.cookies.set({
     name: cookies.sessionToken.name,
     value: encoded,
