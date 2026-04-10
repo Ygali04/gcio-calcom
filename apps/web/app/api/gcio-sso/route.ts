@@ -37,6 +37,13 @@ import { defaultCookies } from "@calcom/lib/default-cookies";
 import logger from "@calcom/lib/logger";
 import prisma from "@calcom/prisma";
 
+// Force this route to run on every request and prevent Next.js / Turbopack
+// from statically analyzing it at build time. Without this, production builds
+// can inline process.env.* reads (baking build-time values, which don't
+// include Railway runtime secrets) and can cache responses.
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 const log = logger.getSubLogger({ prefix: ["gcio-sso"] });
 
 // Env vars are read lazily on every request (function scope, not module scope).
