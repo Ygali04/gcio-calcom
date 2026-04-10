@@ -37,6 +37,29 @@ export const sendEmailVerification = async ({
   isPlatform = false,
   extraParams,
 }: VerifyEmailType) => {
+  // ─────────────────────────────────────────────────────────────────────
+  // GCIO PATCH: hard-disable email verification sending
+  // ─────────────────────────────────────────────────────────────────────
+  // GCIO uses Cal.com as a backend service and never sends verification
+  // emails to users — they're authenticated against the GCIO FastAPI
+  // backend, not Cal.com. The hard return below short-circuits this
+  // function regardless of the email-verification feature flag state,
+  // so even if the flag is accidentally re-enabled, no verification
+  // emails are ever sent. The original implementation is preserved as
+  // commented code below. Re-enable by deleting this block and
+  // uncommenting the original.
+  // ─────────────────────────────────────────────────────────────────────
+  log.warn("[GCIO PATCH] sendEmailVerification disabled by GCIO patch — no-op", {
+    email,
+    language,
+    username,
+    secondaryEmailId,
+    isPlatform,
+    extraParams,
+  });
+  return { ok: true, skipped: true };
+
+  /* ORIGINAL IMPLEMENTATION — preserved for reference, see GCIO patch above
   const token = randomBytes(32).toString("hex");
   const translation = await getTranslation(language ?? "en", "common");
   const featuresRepository = new FeaturesRepository(prisma);
@@ -87,6 +110,7 @@ export const sendEmailVerification = async ({
   });
 
   return { ok: true, skipped: false };
+  */
 };
 
 export const sendEmailVerificationByCode = async ({

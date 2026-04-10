@@ -51,15 +51,28 @@ export async function checkOnboardingRedirect(
   // Check email verification if needed
   const featuresRepository = new FeaturesRepository(prisma);
 
-  if (options?.checkEmailVerification) {
-    const emailVerificationEnabled =
-      await featuresRepository.checkIfFeatureIsEnabledGlobally("email-verification");
-
-    if (!user.emailVerified && user.identityProvider === "CAL" && emailVerificationEnabled) {
-      // User needs email verification, redirect to verification page
-      return "/auth/verify-email";
-    }
-  }
+  // ─────────────────────────────────────────────────────────────────────
+  // GCIO PATCH: email verification gate disabled
+  // ─────────────────────────────────────────────────────────────────────
+  // The GCIO platform uses a separate auth system (FastAPI backend) and
+  // never asks users to verify their Cal.com email — Cal.com is treated
+  // as a backend service, not a user-facing identity provider. Forcing
+  // verification here breaks the "Manage Calendar" flow where admins
+  // proxy as users and need instant Cal.com access.
+  //
+  // The original gate is preserved below in case it's ever needed again.
+  // To re-enable: uncomment the block AND set the email-verification
+  // feature flag to TRUE in the Feature table.
+  // ─────────────────────────────────────────────────────────────────────
+  // if (options?.checkEmailVerification) {
+  //   const emailVerificationEnabled =
+  //     await featuresRepository.checkIfFeatureIsEnabledGlobally("email-verification");
+  //
+  //   if (!user.emailVerified && user.identityProvider === "CAL" && emailVerificationEnabled) {
+  //     // User needs email verification, redirect to verification page
+  //     return "/auth/verify-email";
+  //   }
+  // }
 
   // Determine which onboarding path to use
   const onboardingV3Enabled = await featuresRepository.checkIfFeatureIsEnabledGlobally("onboarding-v3");

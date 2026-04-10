@@ -1060,18 +1060,37 @@ export const getOptions = ({
         const isVerified =
           isEmailVerified || (idP === IdentityProvider.AZUREAD && isAzureEmailDomainVerified);
 
-        if (idP === IdentityProvider.AZUREAD && !isAzureEmailDomainVerified) {
-          log.error(
-            "Azure AD email domain not verified (xms_edov claim)",
-            safeStringify({ emailDomain: user.email?.split("@")[1], xmsEdov })
-          );
-          return "/auth/error?error=unverified-email";
-        }
-
-        if (!isEmailVerified && idP !== IdentityProvider.AZUREAD) {
-          log.error("Attention: SAML/Google User email is not verified in the IdP", safeStringify({ user }));
-          return "/auth/error?error=unverified-email";
-        }
+        // ─────────────────────────────────────────────────────────────────
+        // GCIO PATCH: OAuth email verification gate disabled
+        // ─────────────────────────────────────────────────────────────────
+        // GCIO uses Cal.com as a backend service. Users authenticate
+        // against the GCIO FastAPI backend, then are auto-provisioned
+        // into Cal.com via direct DB inserts (see calcom-bootstrap-runbook).
+        // Their Cal.com emails are pre-verified at insert time, so the
+        // OAuth verification gate is dead code for our use case — and
+        // worse, when an admin proxies as a user via the demo login flow,
+        // it triggers unwanted redirects to /auth/error.
+        //
+        // The original gates are preserved below in case it's ever needed.
+        // To re-enable: uncomment both blocks.
+        // ─────────────────────────────────────────────────────────────────
+        // if (idP === IdentityProvider.AZUREAD && !isAzureEmailDomainVerified) {
+        //   log.error(
+        //     "Azure AD email domain not verified (xms_edov claim)",
+        //     safeStringify({ emailDomain: user.email?.split("@")[1], xmsEdov })
+        //   );
+        //   return "/auth/error?error=unverified-email";
+        // }
+        //
+        // if (!isEmailVerified && idP !== IdentityProvider.AZUREAD) {
+        //   log.error("Attention: SAML/Google User email is not verified in the IdP", safeStringify({ user }));
+        //   return "/auth/error?error=unverified-email";
+        // }
+        // (isVerified is still used downstream at the auto-merge path
+        //  around line 1217 where it controls whether two existing users
+        //  with the same email get merged across identity providers —
+        //  that logic is unchanged, only the hard reject paths above
+        //  are commented out.)
 
         let existingUser = await prisma.user.findFirst({
           include: {
