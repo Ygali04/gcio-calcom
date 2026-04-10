@@ -1,0 +1,184 @@
+/**
+ * GCIO SSO callback — receives a JWT minted by the GCIO FastAPI backend
+ * and exchanges it for a NextAuth session cookie, then redirects the
+ * user to /event-types. Result: clicking "Manage Calendar" in the GCIO
+ * dashboard takes the user directly into Cal.com already logged in.
+ *
+ * Flow:
+ *   1. GCIO frontend POSTs to GCIO backend's /api/calcom/sso-token
+ *   2. Backend signs a 60-second JWT with GCIO_CALCOM_SSO_SECRET containing
+ *      { email, calcom_username, calcom_user_id, sub, iat, exp, nbf, iss, aud }
+ *   3. Backend returns { redirect_url } pointing here
+ *   4. Frontend opens redirect_url in a new tab
+ *   5. This route verifies the JWT against GCIO_SSO_SHARED_SECRET (must match)
+ *   6. Looks up the Cal.com user by email
+ *   7. Encodes a NextAuth session JWT with NEXTAUTH_SECRET (Cal.com's own secret)
+ *   8. Sets it as the __Secure-next-auth.session-token cookie
+ *   9. Redirects to /event-types — user lands inside Cal.com already authenticated
+ *
+ * Security notes:
+ *   - The shared secret is the only thing standing between an attacker and a
+ *     forged session. Treat it like an API key. Rotate it by updating both
+ *     services in lockstep.
+ *   - Tokens are short-lived (60 seconds) and verified via standard JWT
+ *     exp/nbf checks. Replay window is 60 seconds.
+ *   - The route does NOT trust any user-supplied email — it only trusts what
+ *     the JWT claims, and only if the signature verifies.
+ *   - The route refuses tokens whose `iss` isn't `gcio-backend` or whose
+ *     `aud` isn't `gcio-calcom` to prevent token reuse from other contexts.
+ */
+
+import { encode } from "next-auth/jwt";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { errors as joseErrors, jwtVerify } from "jose";
+
+import { defaultCookies } from "@calcom/lib/default-cookies";
+import logger from "@calcom/lib/logger";
+import prisma from "@calcom/prisma";
+
+const log = logger.getSubLogger({ prefix: ["gcio-sso"] });
+
+const SHARED_SECRET = process.env.GCIO_SSO_SHARED_SECRET;
+const NEXTAUTH_SECRET = process.env.NEXTAUTH_SECRET;
+const WEBAPP_URL = process.env.NEXT_PUBLIC_WEBAPP_URL ?? "https://gcio-calcom-production.up.railway.app";
+
+interface GcioSsoClaims {
+  iss: string;
+  aud: string;
+  sub: string;
+  email: string;
+  calcom_username: string | null;
+  calcom_user_id: number | null;
+  iat: number;
+  exp: number;
+  nbf: number;
+}
+
+function errorRedirect(reason: string) {
+  log.warn("[gcio-sso] rejecting SSO request", { reason });
+  // Redirect to the standard Cal.com auth error page so the user sees
+  // a recognizable failure mode rather than a bare JSON response.
+  return NextResponse.redirect(
+    `${WEBAPP_URL}/auth/error?error=gcio-sso-${encodeURIComponent(reason)}`,
+    { status: 302 }
+  );
+}
+
+export async function GET(req: NextRequest) {
+  if (!SHARED_SECRET) {
+    log.error("[gcio-sso] GCIO_SSO_SHARED_SECRET is not configured");
+    return errorRedirect("not-configured");
+  }
+  if (!NEXTAUTH_SECRET) {
+    log.error("[gcio-sso] NEXTAUTH_SECRET is not configured");
+    return errorRedirect("nextauth-secret-missing");
+  }
+
+  const url = new URL(req.url);
+  const token = url.searchParams.get("token");
+  if (!token) {
+    return errorRedirect("missing-token");
+  }
+
+  // 1. Verify the JWT signature, expiration, audience, and issuer in one shot.
+  // jose is the same library NextAuth itself uses internally for JWT, so we
+  // don't need to add a new dependency to apps/web/package.json.
+  let claims: GcioSsoClaims;
+  try {
+    const secretKey = new TextEncoder().encode(SHARED_SECRET);
+    const { payload } = await jwtVerify(token, secretKey, {
+      algorithms: ["HS256"],
+      issuer: "gcio-backend",
+      audience: "gcio-calcom",
+    });
+    claims = payload as unknown as GcioSsoClaims;
+  } catch (err) {
+    if (err instanceof joseErrors.JWTExpired) return errorRedirect("token-expired");
+    if (err instanceof joseErrors.JWSSignatureVerificationFailed)
+      return errorRedirect("bad-signature");
+    if (err instanceof joseErrors.JWTClaimValidationFailed)
+      return errorRedirect("bad-claims");
+    if (err instanceof joseErrors.JWTInvalid) return errorRedirect("invalid-token");
+    return errorRedirect("verification-failed");
+  }
+
+  // 2. Look up the Cal.com user. We trust the email field from the verified
+  // JWT, but we still query the DB to confirm the user exists and to load
+  // the fields the NextAuth session token needs.
+  const calUser = await prisma.user.findFirst({
+    where: { email: claims.email },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      username: true,
+      role: true,
+      locale: true,
+      avatarUrl: true,
+    },
+  });
+
+  if (!calUser) {
+    log.warn("[gcio-sso] no Cal.com user found for verified email", {
+      email: claims.email,
+    });
+    return errorRedirect("user-not-found");
+  }
+
+  // 3. Build a NextAuth session token. Field shape mirrors what
+  // packages/features/auth/lib/next-auth-options.ts:925-939 returns
+  // from the jwt callback after a successful OAuth login. The encode
+  // function uses the same NEXTAUTH_SECRET that NextAuth itself uses,
+  // so the resulting cookie is indistinguishable from a normal login.
+  //
+  // upId uses the legacy "usr-{id}" format which Cal.com accepts for
+  // non-organization users. Org-aware routing isn't needed for the
+  // SSO bridge use case.
+  const sessionToken = {
+    id: calUser.id,
+    sub: String(calUser.id),
+    upId: `usr-${calUser.id}`,
+    name: calUser.name,
+    username: calUser.username,
+    email: calUser.email,
+    avatarUrl: calUser.avatarUrl,
+    role: calUser.role,
+    locale: calUser.locale,
+  };
+
+  // Default NextAuth session: 30 days. Match Cal.com's defaults.
+  const maxAge = 30 * 24 * 60 * 60;
+  const encoded = await encode({
+    token: sessionToken,
+    secret: NEXTAUTH_SECRET,
+    maxAge,
+  });
+
+  // 4. Set the session cookie + redirect. Use defaultCookies() so we
+  // get the exact same cookie name + flags Cal.com uses for its own
+  // session cookies. Mismatch on either would mean Cal.com doesn't
+  // see the session.
+  const useSecure = WEBAPP_URL.startsWith("https://");
+  const cookies = defaultCookies(useSecure);
+
+  const response = NextResponse.redirect(`${WEBAPP_URL}/event-types`, { status: 302 });
+  response.cookies.set({
+    name: cookies.sessionToken.name,
+    value: encoded,
+    httpOnly: cookies.sessionToken.options.httpOnly,
+    secure: cookies.sessionToken.options.secure,
+    sameSite: cookies.sessionToken.options.sameSite as "lax" | "strict" | "none",
+    domain: cookies.sessionToken.options.domain,
+    path: cookies.sessionToken.options.path,
+    maxAge,
+  });
+
+  log.info("[gcio-sso] session created", {
+    calUserId: calUser.id,
+    username: calUser.username,
+    gcioUserId: claims.sub,
+  });
+
+  return response;
+}
