@@ -82,8 +82,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends netcat-openbsd 
 
 COPY --from=builder-two /calcom ./
 ARG NEXT_PUBLIC_WEBAPP_URL=http://localhost:3000
+# GCIO_SSO_SHARED_SECRET: Railway's runtime env-var injection is broken for
+# recently-added vars on this service. Passing via Docker ARG→ENV as a
+# workaround so the SSO bridge can read it at runtime. ARG value comes from
+# Railway's build-time secrets (Railway exposes ALL service variables as
+# build args automatically during Docker builds).
+ARG GCIO_SSO_SHARED_SECRET
 ENV NEXT_PUBLIC_WEBAPP_URL=$NEXT_PUBLIC_WEBAPP_URL \
-  BUILT_NEXT_PUBLIC_WEBAPP_URL=$NEXT_PUBLIC_WEBAPP_URL
+  BUILT_NEXT_PUBLIC_WEBAPP_URL=$NEXT_PUBLIC_WEBAPP_URL \
+  GCIO_SSO_SHARED_SECRET=$GCIO_SSO_SHARED_SECRET
 
 ENV NODE_ENV=production
 EXPOSE 3000

@@ -83,23 +83,6 @@ function errorRedirect(webappUrl: string, reason: string) {
 
 export async function GET(req: NextRequest) {
   const { sharedSecret, nextAuthSecret, webappUrl } = getEnv();
-  // Debug: dump a sample of what process.env actually contains at runtime.
-  // Trying multiple access patterns to defeat any potential Turbopack inlining.
-  const allKeys = Object.keys(process.env);
-  const keyName = "GCIO_SSO_SHARED_SECRET"; // runtime string, not a literal
-  const bracketAccess = (process.env as Record<string, string | undefined>)[keyName];
-  const bracketAccessProbe = (process.env as Record<string, string | undefined>)["GCIO_PROBE_TEST"];
-  const nonGcioProbe = (process.env as Record<string, string | undefined>)["NONGCIO_PROBE_TEST"];
-  log.warn("[gcio-sso] env probe v2", {
-    totalEnvKeys: allKeys.length,
-    hasNextAuthSecret: Boolean(nextAuthSecret),
-    sampleKeys: allKeys.slice(0, 15),
-    gcioKeys: allKeys.filter((k) => k.includes("GCIO") || k.includes("PROBE")),
-    dotAccessSharedSecretSet: Boolean(sharedSecret),
-    bracketAccessSharedSecretSet: Boolean(bracketAccess),
-    bracketGcioProbeSet: Boolean(bracketAccessProbe),
-    bracketNonGcioProbeSet: Boolean(nonGcioProbe),
-  });
   if (!sharedSecret) {
     log.error("[gcio-sso] GCIO_SSO_SHARED_SECRET is not configured");
     return errorRedirect(webappUrl, "not-configured");
