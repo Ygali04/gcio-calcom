@@ -135,16 +135,21 @@ export async function GET(req: NextRequest) {
   // upId uses the legacy "usr-{id}" format which Cal.com accepts for
   // non-organization users. Org-aware routing isn't needed for the
   // SSO bridge use case.
+  //
+  // The `?? undefined` casts coerce nullable Prisma columns into the
+  // shape next-auth/jwt's JWT type expects (which uses `string | undefined`,
+  // not `string | null`). Without these, TypeScript's strict mode rejects
+  // the encode() call at compile time.
   const sessionToken = {
     id: calUser.id,
     sub: String(calUser.id),
     upId: `usr-${calUser.id}`,
-    name: calUser.name,
-    username: calUser.username,
+    name: calUser.name ?? undefined,
+    username: calUser.username ?? undefined,
     email: calUser.email,
-    avatarUrl: calUser.avatarUrl,
+    avatarUrl: calUser.avatarUrl ?? undefined,
     role: calUser.role,
-    locale: calUser.locale,
+    locale: calUser.locale ?? undefined,
   };
 
   // Default NextAuth session: 30 days. Match Cal.com's defaults.
