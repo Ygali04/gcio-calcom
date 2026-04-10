@@ -83,17 +83,22 @@ function errorRedirect(webappUrl: string, reason: string) {
 
 export async function GET(req: NextRequest) {
   const { sharedSecret, nextAuthSecret, webappUrl } = getEnv();
-  // Debug: list ALL env keys the container sees that contain CIO or SSO or SECRET.
-  // Using log.warn so it survives Cal.com's default minLevel=4 (WARN) filter.
-  // Remove after confirming the fix.
+  // Debug: dump a sample of what process.env actually contains at runtime.
+  // Trying multiple access patterns to defeat any potential Turbopack inlining.
   const allKeys = Object.keys(process.env);
-  log.warn("[gcio-sso] env probe", {
+  const keyName = "GCIO_SSO_SHARED_SECRET"; // runtime string, not a literal
+  const bracketAccess = (process.env as Record<string, string | undefined>)[keyName];
+  const bracketAccessProbe = (process.env as Record<string, string | undefined>)["GCIO_PROBE_TEST"];
+  const nonGcioProbe = (process.env as Record<string, string | undefined>)["NONGCIO_PROBE_TEST"];
+  log.warn("[gcio-sso] env probe v2", {
     totalEnvKeys: allKeys.length,
-    gcioKeys: allKeys.filter((k) => k.startsWith("GCIO_")),
-    ssoKeys: allKeys.filter((k) => k.toUpperCase().includes("SSO")),
-    secretKeys: allKeys.filter((k) => k.toUpperCase().includes("SECRET")),
     hasNextAuthSecret: Boolean(nextAuthSecret),
-    sharedSecretPrefix: sharedSecret ? sharedSecret.slice(0, 4) : null,
+    sampleKeys: allKeys.slice(0, 15),
+    gcioKeys: allKeys.filter((k) => k.includes("GCIO") || k.includes("PROBE")),
+    dotAccessSharedSecretSet: Boolean(sharedSecret),
+    bracketAccessSharedSecretSet: Boolean(bracketAccess),
+    bracketGcioProbeSet: Boolean(bracketAccessProbe),
+    bracketNonGcioProbeSet: Boolean(nonGcioProbe),
   });
   if (!sharedSecret) {
     log.error("[gcio-sso] GCIO_SSO_SHARED_SECRET is not configured");
