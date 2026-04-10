@@ -83,9 +83,15 @@ function errorRedirect(webappUrl: string, reason: string) {
 
 export async function GET(req: NextRequest) {
   const { sharedSecret, nextAuthSecret, webappUrl } = getEnv();
-  // Debug: list all GCIO_* env keys the container actually sees. Remove after confirming fix.
-  log.info("[gcio-sso] env probe", {
-    gcioKeys: Object.keys(process.env).filter((k) => k.startsWith("GCIO_")),
+  // Debug: list ALL env keys the container sees that contain CIO or SSO or SECRET.
+  // Using log.warn so it survives Cal.com's default minLevel=4 (WARN) filter.
+  // Remove after confirming the fix.
+  const allKeys = Object.keys(process.env);
+  log.warn("[gcio-sso] env probe", {
+    totalEnvKeys: allKeys.length,
+    gcioKeys: allKeys.filter((k) => k.startsWith("GCIO_")),
+    ssoKeys: allKeys.filter((k) => k.toUpperCase().includes("SSO")),
+    secretKeys: allKeys.filter((k) => k.toUpperCase().includes("SECRET")),
     hasNextAuthSecret: Boolean(nextAuthSecret),
     sharedSecretPrefix: sharedSecret ? sharedSecret.slice(0, 4) : null,
   });
