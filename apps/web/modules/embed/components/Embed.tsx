@@ -677,18 +677,6 @@ const EmailEmbedPreview = ({
               </div>
             </>
           </b>
-          <div
-            className="w-full text-right"
-            style={{
-              borderTop: "1px solid #CCCCCC",
-              marginTop: "8px",
-              paddingTop: "8px",
-            }}>
-            <span>{t("powered_by")}</span>{" "}
-            <b style={{ color: "black" }}>
-              <span> Cal.com</span>
-            </b>
-          </div>
         </div>
         <b style={{ color: "black" }} />
       </div>
