@@ -1,10 +1,18 @@
-<!-- PROJECT LOGO -->
+# GCIO Cal
+
+> **Heads up:** This repository is **GCIO Cal**, the Global CIO Circle calendar service. It is a **private fork of the upstream open-source [Cal.com](https://github.com/calcom/cal.com) project** (AGPLv3) and is hosted at [`Ygali04/gcio-calcom`](https://github.com/Ygali04/gcio-calcom). GCIO-specific customizations (branding, SSO bridge, platform integrations) live on the `gcio-customizations` branch; upstream Cal.com fixes and security patches are pulled in via the `upstream` git remote. See [`docs/calcom-integration.md`](https://github.com/Ygali04/global-cio-main-website/blob/main/docs/calcom-integration.md#why-we-rebranded-to-gcio-cal) in the GCIO platform repo for the rebrand rationale.
+>
+> Everything below this notice is the **unmodified upstream Cal.com README**, preserved verbatim for fork attribution, AGPLv3 compliance, and engineering reference. Package names like `@calcom/ui`, URLs pointing at `https://cal.com`, and all references to the upstream project stay as "Cal.com".
+
+---
+
+<!-- PROJECT LOGO (upstream Cal.com) -->
 <p align="center">
   <a href="https://github.com/calcom/cal.com">
    <img src="https://user-images.githubusercontent.com/8019099/210054112-5955e812-a76e-4160-9ddd-58f2c72f1cce.png" alt="Logo">
   </a>
 
-  <h3 align="center">Cal.com</h3>
+  <h3 align="center">Cal.com (upstream)</h3>
 
   <p align="center">
     The open-source Calendly successor.
