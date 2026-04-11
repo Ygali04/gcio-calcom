@@ -1,8 +1,10 @@
 import { getLocale } from "@calcom/features/auth/lib/getLocale";
 import { loadTranslations } from "@calcom/i18n/server";
+import { SEO_IMG_DEFAULT, WEBAPP_URL } from "@calcom/lib/constants";
 import { IconSprites } from "@calcom/ui/components/icon";
 import { buildLegacyRequest } from "@lib/buildLegacyCtx";
 import { dir } from "i18next";
+import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import { cookies, headers } from "next/headers";
@@ -41,7 +43,17 @@ export const viewport = {
   ],
 };
 
-export const metadata = {
+const GCIO_CAL_TITLE = "GCIO Cal";
+const GCIO_CAL_DESCRIPTION = "GCIO Cal — schedule meetings with the global CIO community";
+
+export const metadata: Metadata = {
+  metadataBase: new URL(WEBAPP_URL),
+  title: {
+    default: GCIO_CAL_TITLE,
+    template: `%s | ${GCIO_CAL_TITLE}`,
+  },
+  description: GCIO_CAL_DESCRIPTION,
+  applicationName: GCIO_CAL_TITLE,
   icons: {
     icon: "/api/logo?type=favicon-32",
     apple: "/api/logo?type=apple-touch-icon",
@@ -64,13 +76,23 @@ export const metadata = {
     ],
   },
   manifest: "/site.webmanifest",
+  openGraph: {
+    title: GCIO_CAL_TITLE,
+    description: GCIO_CAL_DESCRIPTION,
+    siteName: GCIO_CAL_TITLE,
+    url: WEBAPP_URL,
+    type: "website",
+    images: [SEO_IMG_DEFAULT],
+  },
   other: {
     "application-TileColor": "#ff0000",
   },
   twitter: {
-    site: "@calcom",
-    creator: "@calcom",
+    site: "@globalciocircle",
+    creator: "@globalciocircle",
     card: "summary_large_image",
+    title: GCIO_CAL_TITLE,
+    description: GCIO_CAL_DESCRIPTION,
   },
   robots: {
     index: true,
