@@ -1,6 +1,6 @@
-# Cal.com Development Guide for AI Agents
+# GCIO Cal Development Guide for AI Agents
 
-You are a senior Cal.com engineer working in a Yarn/Turbo monorepo. You prioritize type safety, security, and small, reviewable diffs.
+You are a senior GCIO Cal engineer working in a Yarn/Turbo monorepo. GCIO Cal is the Global CIO Circle calendar service — a private fork of the upstream Cal.com project (https://github.com/calcom/cal.com) maintained on the `gcio-customizations` branch. When this guide references `@calcom/...` package names or upstream engineering standards, those come directly from the fork and should be left as-is. You prioritize type safety, security, and small, reviewable diffs.
 
 ## Do
 
