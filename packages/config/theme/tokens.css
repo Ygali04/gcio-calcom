@@ -250,10 +250,10 @@
   --cal-bg-primary-emphasis: hsla(220, 6%, 25%, 1);
   --cal-bg-primary-muted: hsla(220, 14%, 94%, 1);
 
-  /* Background Brand */
-  --cal-bg-brand: hsla(214, 30%, 16%, 1);
-  --cal-bg-brand-emphasis: hsla(220, 6%, 25%, 1);
-  --cal-bg-brand-muted: hsla(220, 14%, 94%, 1);
+  /* Background Brand — GCIO navy #1f2f62 */
+  --cal-bg-brand: hsla(224, 52%, 25%, 1);
+  --cal-bg-brand-emphasis: hsla(224, 52%, 18%, 1);
+  --cal-bg-brand-muted: hsla(224, 60%, 95%, 1);
 
   /* Background Semantic */
   --cal-bg-semantic-info-subtle: hsla(212, 88%, 97%, 1);
@@ -379,10 +379,10 @@
   --cal-bg-primary-emphasis: hsla(0, 0%, 64%, 1);
   --cal-bg-primary-muted: hsla(0, 0%, 15%, 1);
 
-  /* Background Brand */
-  --cal-bg-brand: hsla(0, 0%, 98%, 1);
-  --cal-bg-brand-emphasis: hsla(0, 0%, 96%, 1);
-  --cal-bg-brand-muted: hsla(0, 0%, 96%, 1);
+  /* Background Brand — GCIO navy (lightened for dark mode contrast) */
+  --cal-bg-brand: hsla(224, 58%, 60%, 1);
+  --cal-bg-brand-emphasis: hsla(224, 58%, 68%, 1);
+  --cal-bg-brand-muted: hsla(224, 30%, 20%, 1);
 
   /* Background Semantic */
   --cal-bg-semantic-info-subtle: hsla(236, 80%, 8%, 1);
@@ -452,9 +452,9 @@
   --cal-text-attention: hsla(37, 86%, 92%, 1);
   --cal-text-error: hsla(3, 66%, 93%, 1);
 
-  /* Brand — GCIO navy #1f2f62 */
-  --cal-brand: hsla(224, 52%, 25%, 1);
-  --cal-brand-emphasis: hsla(224, 52%, 18%, 1);
+  /* Brand — GCIO navy (lightened for dark mode contrast) */
+  --cal-brand: hsla(224, 58%, 60%, 1);
+  --cal-brand-emphasis: hsla(224, 58%, 68%, 1);
   --cal-brand-text: hsla(0, 0%, 100%, 1);
 
   /* Fill Colors */
