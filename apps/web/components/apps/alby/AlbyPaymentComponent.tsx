@@ -109,18 +109,6 @@ export const AlbyPaymentComponent = (props: IAlbyPaymentComponentProps) => {
           )}
         </>
       )}
-      <Link target="_blank" href="https://getalby.com">
-        <div className="mt-4 flex items-center text-sm">
-          Powered by&nbsp;
-          <img title="Alby" src="/app-store/alby/logo.svg" alt="Alby" className="h-8 dark:hidden" />
-          <img
-            title="Alby"
-            src="/app-store/alby/logo-dark.svg"
-            alt="Alby"
-            className="hidden h-8 dark:block"
-          />
-        </div>
-      </Link>
     </div>
   );
 };
