@@ -125,7 +125,12 @@ export function Setup(props: PageProps) {
   });
 
   return (
-    <main className="bg-subtle flex items-center print:h-full md:h-screen">
+    <main className="bg-subtle flex flex-col items-center print:h-full md:h-screen">
+      <div className="mt-6 px-6 text-center md:mt-10">
+        <h1 className="font-cal text-emphasis text-3xl" data-testid="setup-welcome-title">
+          {t("welcome_to_cal_header", { appName: APP_NAME })}
+        </h1>
+      </div>
       <WizardForm
         defaultStep={defaultStep}
         steps={steps}
