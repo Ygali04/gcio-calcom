@@ -201,7 +201,14 @@ export async function GET(req: NextRequest) {
   const useSecure = webappUrl.startsWith("https://");
   const cookies = defaultCookies(useSecure);
 
-  const response = NextResponse.redirect(`${webappUrl}/event-types`, { status: 302 });
+  // Honour a `returnTo` query param so the caller can control where the
+  // user lands after SSO (e.g. /settings/my-account/calendars for the
+  // onboarding flow). Validate it starts with "/" to prevent open redirects.
+  const returnTo = url.searchParams.get("returnTo");
+  const destination = returnTo && returnTo.startsWith("/")
+    ? `${webappUrl}${returnTo}`
+    : `${webappUrl}/event-types`;
+  const response = NextResponse.redirect(destination, { status: 302 });
   response.cookies.set({
     name: cookies.sessionToken.name,
     value: encoded,
