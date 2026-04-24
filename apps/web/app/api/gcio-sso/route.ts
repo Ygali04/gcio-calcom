@@ -52,16 +52,20 @@ const log = logger.getSubLogger({ prefix: ["gcio-sso"] });
 // inside the handler guarantees the live runtime value is used.
 function getEnv() {
   // Read the SSO shared secret from either the canonical name or a fallback.
-  // Reason: during the initial Railway env-var injection debugging we observed
-  // that vars added via CLI/API for this specific service name weren't being
-  // delivered to the runtime container. CALCOM_SSO_BRIDGE_SECRET is an
-  // alternate name we can use if the canonical one hits that bug again.
+  //
+  // CRITICAL: use bracket notation `env["X"]` instead of dot notation
+  // `process.env.X`. Turbopack statically analyzes dot-notation reads and
+  // replaces them with the compile-time value — which is `undefined` if
+  // the env var wasn't present during the Railway build phase. Assigning
+  // `process.env` to a local const and using bracket access defeats this
+  // optimization and forces a genuine runtime lookup.
+  const env = process.env;
   return {
     sharedSecret:
-      process.env.GCIO_SSO_SHARED_SECRET ?? process.env.CALCOM_SSO_BRIDGE_SECRET,
-    nextAuthSecret: process.env.NEXTAUTH_SECRET,
+      env["GCIO_SSO_SHARED_SECRET"] ?? env["CALCOM_SSO_BRIDGE_SECRET"],
+    nextAuthSecret: env["NEXTAUTH_SECRET"],
     webappUrl:
-      process.env.NEXT_PUBLIC_WEBAPP_URL ?? "https://gcio-calcom-production.up.railway.app",
+      env["NEXT_PUBLIC_WEBAPP_URL"] ?? "https://gcio-calcom-production.up.railway.app",
   };
 }
 
