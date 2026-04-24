@@ -1,0 +1,15 @@
+node_modules/
+.next/
+.turbo/
+.git/
+.yarn/cache/
+*.tsbuildinfo
+docs/
+__checks__/
+example-apps/
+vitest-mocks/
+specs/
+agents/
+apps/api/v2/dist/
+packages/prisma/generated/
+packages/kysely/types.ts
