@@ -93,6 +93,13 @@ function errorRedirect(webappUrl: string, reason: string) {
 
 export async function GET(req: NextRequest) {
   const { sharedSecret, nextAuthSecret, webappUrl } = getEnv();
+  // Debug: log env var availability to diagnose Railway injection
+  log.info("[gcio-sso] env check", {
+    hasSharedSecret: !!sharedSecret,
+    secretLength: sharedSecret?.length ?? 0,
+    hasNextAuth: !!nextAuthSecret,
+    envKeys: Object.keys(process.env).filter(k => k.includes("SSO") || k.includes("CALCOM_SSO")).join(","),
+  });
   if (!sharedSecret) {
     log.error("[gcio-sso] GCIO_SSO_SHARED_SECRET is not configured");
     return errorRedirect(webappUrl, "not-configured");

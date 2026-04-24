@@ -222,6 +222,15 @@ const nextConfig = (phase: string): NextConfig => {
   }
 
   return {
+    // Explicitly map server-only env vars so they survive Turbopack
+    // compilation. Without this, Turbopack inlines process.env.X as
+    // undefined when the var isn't present during static analysis.
+    // The `env` field reads process.env at config evaluation time
+    // (before Turbopack) and injects the values into the bundle.
+    env: {
+      GCIO_SSO_SHARED_SECRET: process.env.GCIO_SSO_SHARED_SECRET ?? "",
+      CALCOM_SSO_BRIDGE_SECRET: process.env.CALCOM_SSO_BRIDGE_SECRET ?? "",
+    },
     output: process.env.BUILD_STANDALONE === "true" ? "standalone" : undefined,
     serverExternalPackages: [
       "deasync",
